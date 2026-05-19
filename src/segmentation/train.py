@@ -32,6 +32,7 @@ class TrainConfig:
     architecture: str
     data_root: str
     output_dir: str
+    run_name: str | None
     checkpoint_dir: str
     epochs: int
     batch_size: int
@@ -48,6 +49,7 @@ class TrainConfig:
     amp: bool
     channels_last: bool
     compile_model: bool
+    checkpoint_every: int
     resume: str | None
 
 
@@ -56,6 +58,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--architecture", choices=["unet", "attention_unet"], required=True)
     parser.add_argument("--data-root", default="kaggle_3m")
     parser.add_argument("--output-dir", default="runs")
+    parser.add_argument("--run-name", help="Optional fixed run directory name under --output-dir.")
     parser.add_argument("--checkpoint-dir", default="checkpoints")
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=32)
@@ -72,6 +75,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-amp", action="store_true")
     parser.add_argument("--no-channels-last", action="store_true")
     parser.add_argument("--compile", action="store_true", dest="compile_model")
+    parser.add_argument(
+        "--checkpoint-every",
+        type=int,
+        default=0,
+        help="Save numbered epoch checkpoints every N epochs. Use 0 to keep only best/last.",
+    )
     parser.add_argument("--resume")
     return parser.parse_args()
 
@@ -318,7 +327,8 @@ def train(config: TrainConfig) -> Path:
     scaler = make_grad_scaler(enabled=amp_enabled)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = Path(config.output_dir) / f"{timestamp}_{config.architecture}"
+    run_dir_name = config.run_name or f"{timestamp}_{config.architecture}"
+    run_dir = Path(config.output_dir) / run_dir_name
     run_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_dir = Path(config.checkpoint_dir)
     split_records = {name: [pair_to_record(pair) for pair in values] for name, values in split.items()}
@@ -402,6 +412,19 @@ def train(config: TrainConfig) -> Path:
             history=history,
             split_records=split_records,
         )
+        if config.checkpoint_every > 0 and epoch % config.checkpoint_every == 0:
+            save_checkpoint(
+                run_dir / "epochs" / f"epoch_{epoch:03d}.pt",
+                model=model,
+                optimizer=optimizer,
+                scheduler=scheduler,
+                scaler=scaler,
+                epoch=epoch,
+                best_val_dice=best_val_dice,
+                config=config,
+                history=history,
+                split_records=split_records,
+            )
         print(json.dumps(record, ensure_ascii=False), flush=True)
 
     if best_path.exists():
@@ -427,6 +450,7 @@ def main() -> None:
         architecture=args.architecture,
         data_root=args.data_root,
         output_dir=args.output_dir,
+        run_name=args.run_name,
         checkpoint_dir=args.checkpoint_dir,
         epochs=args.epochs,
         batch_size=args.batch_size,
@@ -443,6 +467,7 @@ def main() -> None:
         amp=not args.no_amp,
         channels_last=not args.no_channels_last,
         compile_model=args.compile_model,
+        checkpoint_every=args.checkpoint_every,
         resume=args.resume,
     )
     train(config)

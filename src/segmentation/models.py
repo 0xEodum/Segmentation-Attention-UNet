@@ -63,11 +63,15 @@ class AttentionGate(nn.Module):
             nn.Sigmoid(),
         )
         self.relu = nn.ReLU(inplace=True)
+        self.capture_attention = False
+        self.last_attention: torch.Tensor | None = None
 
     def forward(self, gate: torch.Tensor, skip: torch.Tensor) -> torch.Tensor:
         if gate.shape[-2:] != skip.shape[-2:]:
             gate = F.interpolate(gate, size=skip.shape[-2:], mode="bilinear", align_corners=False)
         attention = self.psi(self.relu(self.gate_proj(gate) + self.skip_proj(skip)))
+        if self.capture_attention:
+            self.last_attention = attention.detach()
         return skip * attention
 
 

@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "segmentation-attention-unet"
+version = "0.1.0"
+description = "U-Net and Attention U-Net training/inference for LGG brain MRI segmentation."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "0xEodum" }
+]
+dependencies = [
+  "numpy>=1.23",
+  "pillow>=9.0",
+  "torch>=2.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0"
+]
+notebook = [
+  "matplotlib>=3.7",
+  "ipywidgets>=8.0",
+  "rich>=13.0"
+]
+
+[project.scripts]
+segmentation-train = "segmentation.train:main"
+segmentation-infer = "segmentation.infer:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

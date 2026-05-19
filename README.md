@@ -4,12 +4,17 @@ This project trains a plain U-Net baseline and an Attention U-Net on the `kaggle
 
 ## Train
 
+Install the package first:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e .
+```
+
 Run commands from the repository root with the project virtual environment:
 
 ```powershell
-$env:PYTHONPATH = "src"
-.\.venv\Scripts\python.exe -m segmentation.train --architecture unet --epochs 30 --batch-size 32 --num-workers 6
-.\.venv\Scripts\python.exe -m segmentation.train --architecture attention_unet --epochs 30 --batch-size 32 --num-workers 6
+segmentation-train --architecture unet --epochs 30 --batch-size 32 --num-workers 6
+segmentation-train --architecture attention_unet --epochs 30 --batch-size 32 --num-workers 6 --checkpoint-every 5
 ```
 
 Each run writes:
@@ -21,11 +26,20 @@ Each run writes:
 
 The split is patient-folder based, so slices from one `TCGA_*` folder do not cross train/validation/test boundaries.
 
+## Colab
+
+The notebook [Segmentation_Attention_UNet_Colab.ipynb](Segmentation_Attention_UNet_Colab.ipynb) installs this package from GitHub:
+
+```python
+%pip install -q "segmentation-attention-unet[notebook] @ git+https://github.com/0xEodum/Segmentation-Attention-UNet.git"
+```
+
+It downloads the dataset archive, selects the top-level `kaggle_3m/` directory when both identical archive copies are present, trains both models, and visualizes Attention U-Net gate maps from saved epoch checkpoints.
+
 ## Inference
 
 ```powershell
-$env:PYTHONPATH = "src"
-.\.venv\Scripts\python.exe -m segmentation.infer `
+segmentation-infer `
   --checkpoint checkpoints\attention_unet_best.pt `
   --input kaggle_3m\TCGA_CS_4941_19960909\TCGA_CS_4941_19960909_1.tif `
   --output-dir predictions\attention_unet `
