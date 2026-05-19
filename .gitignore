@@ -1,0 +1,11 @@
+.idea/
+.venv/
+kaggle_3m/
+__pycache__/
+*.pyc
+.pytest_cache/
+runs/
+runs_preflight/
+checkpoints/
+checkpoints_preflight/
+predictions/
